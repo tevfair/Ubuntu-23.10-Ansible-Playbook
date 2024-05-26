@@ -1,0 +1,48 @@
+---
+- name: Configure Ubuntu 23.10 LXC Container
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install essential packages
+      ansible.builtin.apt:
+        name:
+          - vim
+          - git
+          - curl
+          - htop
+        state: present
+
+    - name: Create a new user
+      ansible.builtin.user:
+        name: ubuntu_user
+        group: sudo
+        shell: /bin/bash
+        create_home: yes
+
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: ubuntu-template
+
+    - name: Remove unnecessary packages
+      ansible.builtin.apt:
+        autoremove: yes
+        purge: yes
+
+    - name: Disable password authentication in ssh
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+        state: present
+      notify: restart ssh
+
+  handlers:
+    - name: restart ssh
+      ansible.builtin.service:
+        name: ssh
+        state: restarted
